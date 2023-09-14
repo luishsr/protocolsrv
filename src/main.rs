@@ -3,8 +3,8 @@ use std::str;
 
 fn main() -> std::io::Result<()> {
     // The IP address and port to bind to for receiving UDP messages
-    let local_address = "0.0.0.0:12345";
-    let remote_address = "255.255.255.255:54321"; // Broadcast address
+    let local_address = "0.0.0.0:8888";
+    let remote_address = "255.255.255.255:8888"; // Broadcast address
 
     // Create a UDP socket for receiving messages
     let socket = UdpSocket::bind(local_address)?;
