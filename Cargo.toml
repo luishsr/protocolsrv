@@ -4,3 +4,4 @@ version = "0.0.1"
 authors = ["Luis Soares"]
 
 [dependencies]
+tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
