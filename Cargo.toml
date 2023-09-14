@@ -1,0 +1,6 @@
+[package]
+name = "protocolsrv"
+version = "0.0.1"
+authors = ["Luis Soares"]
+
+[dependencies]
