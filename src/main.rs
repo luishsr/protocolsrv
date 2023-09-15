@@ -129,6 +129,7 @@ async fn listen_to_players() {
                         send_message_to_player(String::from("TURN"), player_manager.remote_player.clone());
                     } else {
                         //send_message_to_player(String::from("TURN"), player_manager.local_player.clone());
+                        println!("Player {} is playng >>>", player_manager.local_player.clone());
                         let win_local = player_manager.play_turn(guess_number());
                         if win_local == player_manager.magic_number{
                             println!("Wow!! PERFECT MATCH!! **** Player {} WIN!", player_manager.local_player);
@@ -167,6 +168,9 @@ fn send_message_to_player(message: String, player_address: String){
 
 #[tokio::main]
 async fn main(){
+    // Initializing
+    println!("Initializing - Local IP Address: {}", get_my_local_ip());
+
     // Start listening for incoming connections
     tokio::spawn(async move {
         listen_to_players().await;
