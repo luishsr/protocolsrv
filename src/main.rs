@@ -91,7 +91,7 @@ fn announce_presence() {
         if source_address.to_string() != get_my_local_ip() + ":8888" && received_message == "DISCOVERY" {
             // Invite to play
             println!("Inviting {} to play", source_address.ip().to_string());
-            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
+            send_message_to_player(String::from("PLAY"), source_address.ip().to_string());
 
             // Stop the loop
             break
@@ -130,7 +130,7 @@ fn listen_to_players() {
                             player_manager.start_game();
 
                             // Ask the peer player to play
-                            send_message_to_player(String::from("TURN"), origin.clone(), false);
+                            send_message_to_player(String::from("TURN"), origin.clone());
                         },
                         b"TURN" => {
                             // Guess a number and play
@@ -138,9 +138,9 @@ fn listen_to_players() {
 
                             // Check if the player guessed the number
                             if win == player_manager.magic_number {
-                                send_message_to_player(String::from("WINN"), origin.clone(), false);
+                                send_message_to_player(String::from("WINN"), origin.clone());
                             } else {
-                                send_message_to_player(String::from("TURN"), player_manager.get_next_player(), false);
+                                send_message_to_player(String::from("TURN"), player_manager.get_next_player());
                             }
                         },
                         b"WINN" =>{
@@ -157,15 +157,10 @@ fn listen_to_players() {
         }
 }
 
-fn send_message_to_player(message: String, player_address: String, change_port: bool){
+fn send_message_to_player(message: String, player_address: String){
     let mut stream;
 
-    if change_port{
-        // Connect to the specified IP address and port
-        stream = TcpStream::connect(format!("{}:{}", player_address, String::from("7878"))).unwrap();
-    } else {
-        stream = TcpStream::connect(player_address).unwrap();
-    }
+    stream = TcpStream::connect(format!("{}:{}", player_address, String::from("7878"))).unwrap();
 
     // Send the message
     stream.write_all(message.as_bytes()).unwrap();
