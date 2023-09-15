@@ -3,6 +3,8 @@ use std::net::{UdpSocket, TcpStream, TcpListener};
 use tokio;
 use rand::Rng;
 use std::io::Write;
+use std::thread::sleep;
+use std::time;
 use local_ip_address::local_ip;
 
 fn get_my_local_ip() -> String{
@@ -58,7 +60,7 @@ impl PlayerManager {
     }
 }
 
-async fn announce_presence(){
+fn announce_presence(){
     // The IP address and port to bind to for receiving UDP messages
     let local_address = "0.0.0.0:8888";
     let remote_address = "255.255.255.255:8888"; // Broadcast address
@@ -89,11 +91,13 @@ async fn announce_presence(){
         // When someone replies
         if source_address.to_string() != get_my_local_ip() + ":8888" &&  received_message == "DISCOVERY"{
             // Invite to play
-            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true).await;
+            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
 
             // Stop the loop
             break
         }
+
+        sleep(time::Duration::from_secs(2));
     }
     //println!("Sent UDP discovery message: {:?}", discovery_message);
 }
@@ -164,7 +168,7 @@ async fn send_message_to_player(message: String, player_address: String, change_
 #[tokio::main]
 async fn main(){
     // Announce its presence to the network
-    announce_presence().await;
+    announce_presence();
 
     // Listen to peers to play with
     listen_to_players().await;
