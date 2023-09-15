@@ -11,13 +11,7 @@ fn get_my_local_ip() -> String{
     local_ip().unwrap().to_string()
 }
 
-pub struct Player {
-    address: String,
-    played: bool
-}
-
 pub struct PlayerManager {
-    players: HashMap<String, Player>,
     magic_number: i32
 }
 
@@ -27,29 +21,11 @@ fn guess_number() -> i32 {
 }
 
 impl PlayerManager {
-    fn register_player(&mut self, address: &String) {
-        self.players.insert(address.clone(), Player{ address: address.clone(), played: false});
-    }
-
     fn start_game(&mut self){
         self.magic_number = guess_number();
     }
 
-    fn get_next_player(&mut self) -> String {
-        let mut next_player= String::from("0.0.0.0:7878");// Initializes with itself
-        for (address, player) in &self.players {
-           if !player.played {
-               next_player = address.clone();
-           }
-        }
-        next_player
-    }
-
     fn play_turn(&mut self, guess: i32, player: String) -> i32 {
-
-        // Update turn
-        self.players.get_mut(player.as_str()).expect("REASON").played = true;
-
         if guess > self.magic_number {
             1
         } else if guess < self.magic_number {
@@ -106,9 +82,13 @@ async fn listen_to_players() {
     let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
+    // Initialize players A, B
+    let mut player_a: String = String::from("");
+    let mut player_b: String = String::from("");
+
     loop {
         // Manage peers
-        let mut player_manager = PlayerManager { players: HashMap::new(), magic_number: 0 };
+        let mut player_manager = PlayerManager { magic_number: 0 };
 
         let (mut socket, _) = listener.accept().expect("Failed to accept connection");
 
@@ -120,10 +100,12 @@ async fn listen_to_players() {
         match &buffer {
             b"PLAY" => {
                 // Register the peer player
-                player_manager.register_player(&origin);
+                //player_manager.register_player(&origin);
+                player_a = origin.clone();
 
                 // Register itself as the other player
-                player_manager.register_player(&get_my_local_ip());
+                //player_manager.register_player(&get_my_local_ip());
+                player_b = get_my_local_ip();
 
                 // Start the game
                 println!("Game started!");
@@ -143,7 +125,12 @@ async fn listen_to_players() {
                     send_message_to_player(String::from("WINN"), origin.clone());
                 } else {
                     println!("Better luck next time, player {}!", origin.clone());
-                    send_message_to_player(String::from("TURN"), player_manager.get_next_player());
+
+                    if origin.clone() == player_a {
+                        send_message_to_player(String::from("TURN"), player_b.clone());
+                    } else {
+                        send_message_to_player(String::from("TURN"), player_a.clone());
+                    }
                 }
             },
             b"WINN" => {
