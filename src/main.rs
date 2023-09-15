@@ -86,12 +86,12 @@ fn announce_presence(){
 
         let received_message = std::str::from_utf8(&buffer[0..bytes_received]).unwrap();
         println!("Received from {}: {}", source_address, received_message);
-        println!("My local IP is {}", get_my_local_ip());
+        //println!("My local IP is {}", get_my_local_ip());
 
         // When someone replies
         if source_address.to_string() != get_my_local_ip() + ":8888" &&  received_message == "DISCOVERY"{
             // Invite to play
-            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
+            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true).await;
 
             // Stop the loop
             break
@@ -106,7 +106,7 @@ async fn listen_to_players() {
     // Manage peers
     let mut player_manager = PlayerManager{players: HashMap::new(), magic_number: 0 };
 
-    let listener = TcpListener::bind("0.0.0.0:8080"); // Bind to a specific IP address and port
+    let listener = TcpListener::bind(get_my_local_ip()+":8080"); // Bind to a specific IP address and port
 
     println!("Server listening on ");
 
@@ -172,5 +172,4 @@ async fn send_message_to_player(message: String, player_address: String, change_
 async fn main(){
     // Listen to peers to play with
     listen_to_players().await;
-
 }
