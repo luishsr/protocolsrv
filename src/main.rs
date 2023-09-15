@@ -170,7 +170,6 @@ fn send_message_to_player(message: String, player_address: String){
     stream.write_all(message.as_bytes()).unwrap();
 
     sleep(time::Duration::from_secs(2));
-    stream.shutdown(Shutdown::Read).expect("TODO: panic message");
 }
 
 fn main(){
