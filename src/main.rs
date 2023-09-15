@@ -90,11 +90,11 @@ async fn listen_to_players() {
     loop {
         let (mut socket, _) = listener.accept().expect("Failed to accept connection");
 
-        // Manage peers
-        let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: socket.peer_addr().unwrap().ip().to_string() };
-
         let origin = socket.peer_addr().unwrap().ip().to_string();
         let mut buffer = [0; 4];
+
+        // Manage peers
+        let mut player_manager = PlayerManager { magic_number: 0, local_player: get_my_local_ip(), remote_player: socket.peer_addr().unwrap().ip().to_string() };
 
         socket.read_exact(&mut buffer).expect("Failed to read data");
 
@@ -104,6 +104,7 @@ async fn listen_to_players() {
                 if origin.clone() != get_my_local_ip(){
                     // Start the game
                     println!("Game started!");
+                    println!("Local Player: {} | Remote Player: {}", player_manager.local_player, player_manager.remote_player);
                     player_manager.start_game();
 
                     // Ask the peer player to play
