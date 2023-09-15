@@ -115,7 +115,6 @@ fn listen_to_players() {
         match stream {
             Ok(mut stream) => {
                 let origin = stream.peer_addr().unwrap().ip().to_string();
-                loop {
                     let mut buffer = [0; 4];
                     stream.read_exact(&mut buffer).expect("Error reading stream");
                     match &buffer{
@@ -152,7 +151,6 @@ fn listen_to_players() {
                         }
                         _ => {}
                     }
-                }
                 }
                 Err(e) => {
                     eprintln!("Error accepting connection: {}", e);
