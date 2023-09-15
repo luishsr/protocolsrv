@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::net::{UdpSocket, TcpStream, TcpListener};
-use tokio;
 use rand::Rng;
 use std::thread::sleep;
 use std::time;
@@ -60,41 +59,39 @@ impl PlayerManager {
     }
 }
 
-fn announce_presence() -> TcpStream{
+fn announce_presence() {
     // The IP address and port to bind to for receiving UDP messages
     let local_address = "0.0.0.0:8888";
     let remote_address = "255.255.255.255:8888"; // Broadcast address
 
     // Create a UDP socket for receiving messages
-    let socket = UdpSocket::bind(local_address).expect("REASON");
+    let socket = UdpSocket::bind(local_address).unwrap();
 
     // Set the socket to allow broadcasting
-    socket.set_broadcast(true).expect("REASON");
+    socket.set_broadcast(true).unwrap();
 
     // Message to send for discovery
     let discovery_message = "DISCOVERY";
 
-     // Buffer to store received data
+    // Buffer to store received data
     let mut buffer = [0; 1024];
-
-    // TCP Stream to return
-    let send_stream: TcpStream;
 
     // Receive responses from other devices
     loop {
         // Send the discovery message
-        socket.send_to(discovery_message.as_bytes(), remote_address).expect("REASON");
+        socket.send_to(discovery_message.as_bytes(), remote_address).unwrap();
 
-        let (bytes_received, source_address) = socket.recv_from(&mut buffer).expect("REASON");
+        let (bytes_received, source_address) = socket.recv_from(&mut buffer).unwrap();
 
         let received_message = std::str::from_utf8(&buffer[0..bytes_received]).unwrap();
         println!("Received from {}: {}", source_address, received_message);
         //println!("My local IP is {}", get_my_local_ip());
 
         // When someone replies
-        if source_address.to_string() != get_my_local_ip() + ":8888" &&  received_message == "DISCOVERY"{
+        if source_address.to_string() != get_my_local_ip() + ":8888" && received_message == "DISCOVERY" {
             // Invite to play
-            send_stream = send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
+            println!("Inviting {} to play", source_address.ip().to_string());
+            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
 
             // Stop the loop
             break
@@ -102,7 +99,6 @@ fn announce_presence() -> TcpStream{
 
         sleep(time::Duration::from_secs(2));
     }
-    send_stream
 }
 
 fn listen_to_players() {
@@ -111,15 +107,13 @@ fn listen_to_players() {
     // Manage peers
     let mut player_manager = PlayerManager { players: HashMap::new(), magic_number: 0 };
 
-    println!("Server listening on ");
-
     let listener = TcpListener::bind("0.0.0.0:7878").unwrap(); // Bind to an IP and port.
-    println!("Server listening on port 8080...");
+    println!("Server listening on port 7878...");
 
     // Discover peers
     announce_presence();
 
-    for mut stream in listener.incoming() {
+    for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
                 loop {
@@ -172,7 +166,7 @@ fn listen_to_players() {
         }
 }
 
-fn send_message_to_player(message: String, player_address: String, change_port: bool) -> TcpStream{
+fn send_message_to_player(message: String, player_address: String, change_port: bool){
     let mut stream;
 
     if change_port{
@@ -184,11 +178,9 @@ fn send_message_to_player(message: String, player_address: String, change_port: 
 
     // Send the message
     stream.write_all(message.as_bytes()).unwrap();
-    stream
 }
 
-#[tokio::main]
-async fn main(){
+fn main(){
     //Listen to peers to play with
     listen_to_players();
 }
