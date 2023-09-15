@@ -5,7 +5,7 @@ use rand::Rng;
 use std::thread::sleep;
 use std::time;
 use local_ip_address::local_ip;
-use std::io::{Write};
+use std::io::{Read, Write};
 
 fn get_my_local_ip() -> String{
     local_ip().unwrap().to_string()
@@ -103,6 +103,8 @@ fn announce_presence(){
 }
 
 fn listen_to_players() {
+    let mut buffer = [0; 1024]; // Buffer to store incoming data
+
     // Manage peers
     let mut player_manager = PlayerManager{players: HashMap::new(), magic_number: 0 };
 
@@ -116,34 +118,47 @@ fn listen_to_players() {
     // Listen for incoming connections and spawn a new thread to handle each one
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {
-                let buffer = [0; 1024]; // Buffer to store incoming data
-                // Convert the received data to a string
-                let received_message = String::from_utf8_lossy(&buffer);
-                println!("Received message: {}", received_message);
+            Ok(mut stream) => {
+                loop {
+                    match stream.read(&mut buffer) {
+                        Ok(n)=> {
+                            if n == 0{
+                                break
+                            }
 
-                // Process received messages
-                if received_message == "PLAY" {
-                    // Register the peer player
-                    player_manager.register_player(stream.peer_addr().expect("REASON").to_string());
+                            // Convert the received data to a string
+                            let received_message = String::from_utf8_lossy(&buffer);
+                            println!("Received message: {}", received_message);
 
-                    // Register itself as the other player
-                    player_manager.register_player(get_my_local_ip());
+                            // Process received messages
+                            if received_message == "PLAY" {
+                                // Register the peer player
+                                player_manager.register_player(stream.peer_addr().expect("REASON").to_string());
 
-                    // Start the game
-                    player_manager.start_game();
+                                // Register itself as the other player
+                                player_manager.register_player(get_my_local_ip());
 
-                    // Ask the peer player to play
-                    send_message_to_player(String::from("YOUR_TURN"), stream.peer_addr().expect("REASON").to_string(), false);
-                } else if received_message == "YOUR_TURN" {
-                    // Guess a number and play
-                    let win = player_manager.play_turn(guess_number(), stream.peer_addr().expect("REASON").to_string());
+                                // Start the game
+                                player_manager.start_game();
 
-                    // Check if the player guessed the number
-                    if win == player_manager.magic_number{
-                        send_message_to_player(String::from("YOU_WIN"), stream.peer_addr().expect("REASON").to_string(), false)
-                    } else {
-                        send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
+                                // Ask the peer player to play
+                                send_message_to_player(String::from("YOUR_TURN"), stream.peer_addr().expect("REASON").to_string(), false);
+                            } else if received_message == "YOUR_TURN" {
+                                // Guess a number and play
+                                let win = player_manager.play_turn(guess_number(), stream.peer_addr().expect("REASON").to_string());
+
+                                // Check if the player guessed the number
+                                if win == player_manager.magic_number{
+                                    send_message_to_player(String::from("YOU_WIN"), stream.peer_addr().expect("REASON").to_string(), false)
+                                } else {
+                                    send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
+                                }
+                            }
+
+                        }
+                        Err(e) => {
+                            eprintln!("Error accepting connection: {}", e);
+                        }
                     }
                 }
             }
