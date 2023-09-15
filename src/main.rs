@@ -87,25 +87,32 @@ async fn listen_to_players() {
     let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
+    let mut player_manager = PlayerManager{magic_number: 0, local_player: get_my_local_ip(), remote_player: "".to_string()};
+
     loop {
         let (mut socket, _) = listener.accept().expect("Failed to accept connection");
 
-        let origin = socket.peer_addr().unwrap().ip().to_string();
-        let mut buffer = [0; 4];
+        let origin = socket.peer_addr().unwrap().ip().to_string().clone();
 
-        // Manage peers
-        let mut player_manager = PlayerManager { magic_number: 0, local_player: get_my_local_ip(), remote_player: socket.peer_addr().unwrap().ip().to_string() };
+        println!("Loop: reading message from {}", origin.clone());
+
+        let mut buffer = [0; 4];
 
         socket.read_exact(&mut buffer).expect("Failed to read data");
 
         match &buffer {
             b"PLAY" => {
 
+                println!("Received PLAY from {}", origin.clone());
+
                 if origin.clone() != get_my_local_ip(){
+                    // Set the remote player
+                    player_manager.remote_player = origin.clone();
+
                     // Start the game
-                    println!("Game started!");
                     println!("Local Player: {} | Remote Player: {}", player_manager.local_player, player_manager.remote_player);
                     player_manager.start_game();
+                    println!("Game started!");
 
                     // Ask the peer player to play
                     send_message_to_player(String::from("TURN"), origin.clone());
