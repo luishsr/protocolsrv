@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::net::{UdpSocket, TcpStream, TcpListener};
 use rand::Rng;
 use std::thread::sleep;
@@ -17,7 +16,7 @@ pub struct PlayerManager {
 
 fn guess_number() -> i32 {
     let mut rng = rand::thread_rng();
-    rng.gen()
+    rng.gen_range(1..=30)
 }
 
 impl PlayerManager {
@@ -25,7 +24,8 @@ impl PlayerManager {
         self.magic_number = guess_number();
     }
 
-    fn play_turn(&mut self, guess: i32, player: String) -> i32 {
+    fn play_turn(&mut self, guess: i32) -> i32 {
+        println!(" Guessed # {}", guess.to_string());
         if guess > self.magic_number {
             1
         } else if guess < self.magic_number {
@@ -117,7 +117,7 @@ async fn listen_to_players() {
             b"TURN" => {
                 println!("Player {} is playng >>>", &origin);
                 // Guess a number and play
-                let win = player_manager.play_turn(guess_number(), origin.clone());
+                let win = player_manager.play_turn(guess_number());
 
                 // Check if the player guessed the number
                 if win == player_manager.magic_number {
@@ -134,7 +134,10 @@ async fn listen_to_players() {
                 }
             },
             b"WINN" => {
-                println!(">>>>> WINNER !!! <<<<<<");
+                println!(">>>>> The Magic Number is ** {} ** <<<<<<", player_manager.magic_number);
+
+                // Finish the game
+                break
             }
             _ => {}
         }
