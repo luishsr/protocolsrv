@@ -107,7 +107,7 @@ fn listen_to_players() {
     // Manage peers
     let mut player_manager = PlayerManager { players: HashMap::new(), magic_number: 0 };
 
-    let listener = TcpListener::bind("0.0.0.0:7878").unwrap(); // Bind to an IP and port.
+    let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
     // Discover peers
