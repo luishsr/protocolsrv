@@ -1,11 +1,8 @@
 use std::collections::HashMap;
-use std::net::{UdpSocket, SocketAddr, TcpStream, TcpListener};
-use std::{str, thread};
-use std::ffi::CString;
+use std::net::{UdpSocket, TcpStream, TcpListener};
 use tokio;
 use rand::Rng;
-use std::io::{Read, Write};
-use std::ptr::addr_of_mut;
+use std::io::Write;
 
 pub struct Player {
     address: String,
@@ -48,7 +45,7 @@ impl PlayerManager {
 
         if guess > self.magic_number {
             1
-        } else if (guess < self.magic_number) {
+        } else if guess < self.magic_number {
             2
         } else {
             0
@@ -90,7 +87,7 @@ async fn listen_to_players() {
     for stream in listener.expect("REASON").incoming() {
         match stream {
             Ok(stream) => {
-                let mut buffer = [0; 1024]; // Buffer to store incoming data
+                let buffer = [0; 1024]; // Buffer to store incoming data
                 // Convert the received data to a string
                 let received_message = String::from_utf8_lossy(&buffer);
                 println!("Received message: {}", received_message);
@@ -132,7 +129,7 @@ async fn send_message_to_player(message: String, player_address: String){
     let mut stream = TcpStream::connect(player_address).expect("REASON");
 
     // Send the message
-    stream.write_all(message.as_bytes());
+    let _ = stream.write_all(message.as_bytes());
 
 }
 
