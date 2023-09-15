@@ -87,17 +87,17 @@ async fn listen_to_players() {
     let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
-    loop {
+    let (mut socket, _) = listener.accept().expect("Failed to accept connection");
 
-        let (mut socket, _) = listener.accept().expect("Failed to accept connection");
+    // Manage peers
+    let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: socket.peer_addr().unwrap().ip().to_string() };
+
+    loop {
 
         let origin = socket.peer_addr().unwrap().ip().to_string();
         let mut buffer = [0; 4];
 
         socket.read_exact(&mut buffer).expect("Failed to read data");
-
-        // Manage peers
-        let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: origin.clone() };
 
         match &buffer {
             b"PLAY" => {
@@ -124,7 +124,16 @@ async fn listen_to_players() {
                     if origin.clone() == player_manager.local_player {
                         send_message_to_player(String::from("TURN"), player_manager.remote_player.clone());
                     } else {
-                        send_message_to_player(String::from("TURN"), player_manager.local_player.clone());
+                        //send_message_to_player(String::from("TURN"), player_manager.local_player.clone());
+                        let win_local = player_manager.play_turn(guess_number());
+                        if win_local == player_manager.magic_number{
+                            println!("Wow!! PERFECT MATCH!! **** Player {} WIN!", player_manager.local_player);
+
+                            // Finish the game
+                            break
+                        } else {
+                            send_message_to_player(String::from("TURN"), player_manager.remote_player.clone());
+                        }
                     }
                 }
             },
