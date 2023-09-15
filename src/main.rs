@@ -106,9 +106,12 @@ async fn listen_to_players() {
     // Manage peers
     let mut player_manager = PlayerManager{players: HashMap::new(), magic_number: 0 };
 
-    let listener = TcpListener::bind("127.0.0.1:8080"); // Bind to a specific IP address and port
+    let listener = TcpListener::bind("0.0.0.0:8080"); // Bind to a specific IP address and port
 
-    println!("Server listening on 127.0.0.1:8080");
+    println!("Server listening on ");
+
+    // Discover peers
+    announce_presence();
 
     // Listen for incoming connections and spawn a new thread to handle each one
     for stream in listener.expect("REASON").incoming() {
@@ -167,9 +170,7 @@ async fn send_message_to_player(message: String, player_address: String, change_
 
 #[tokio::main]
 async fn main(){
-    // Announce its presence to the network
-    announce_presence();
-
     // Listen to peers to play with
     listen_to_players().await;
+
 }
