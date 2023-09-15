@@ -5,6 +5,7 @@ use std::thread::sleep;
 use std::time;
 use local_ip_address::local_ip;
 use std::io::{Read, Write};
+use tokio;
 
 fn get_my_local_ip() -> String{
     local_ip().unwrap().to_string()
@@ -101,7 +102,7 @@ fn announce_presence() {
     }
 }
 
-fn listen_to_players() {
+async fn listen_to_players() {
     let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
@@ -164,10 +165,11 @@ fn send_message_to_player(message: String, player_address: String){
     sleep(time::Duration::from_secs(2));
 }
 
-fn main(){
+#[tokio::main]
+async fn main(){
     // Start listening for incoming connections
     tokio::spawn(async move {
-        listen_to_players();
+        listen_to_players().await;
     });
 
     // Discover peers
