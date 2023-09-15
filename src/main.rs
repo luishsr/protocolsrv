@@ -102,11 +102,11 @@ fn announce_presence(){
     //println!("Sent UDP discovery message: {:?}", discovery_message);
 }
 
-async fn listen_to_players() {
+fn listen_to_players() {
     // Manage peers
     let mut player_manager = PlayerManager{players: HashMap::new(), magic_number: 0 };
 
-    let listener = TcpListener::bind(get_my_local_ip()+":8080"); // Bind to a specific IP address and port
+    let listener = TcpListener::bind(get_my_local_ip()+":8080").unwrap(); // Bind to a specific IP address and port
 
     println!("Server listening on ");
 
@@ -114,7 +114,7 @@ async fn listen_to_players() {
     announce_presence();
 
     // Listen for incoming connections and spawn a new thread to handle each one
-    for stream in listener.expect("REASON").incoming() {
+    for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 let buffer = [0; 1024]; // Buffer to store incoming data
@@ -171,5 +171,5 @@ fn send_message_to_player(message: String, player_address: String, change_port: 
 #[tokio::main]
 async fn main(){
     // Listen to peers to play with
-    listen_to_players().await;
+    listen_to_players();
 }
