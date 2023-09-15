@@ -114,9 +114,9 @@ fn listen_to_players() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
-                let mut buffer = [0; 4];
                 let origin = stream.peer_addr().unwrap().ip().to_string();
                 loop {
+                    let mut buffer = [0; 4];
                     stream.read_exact(&mut buffer).expect("Error reading stream");
                     match &buffer{
                         b"PLAY" => {
