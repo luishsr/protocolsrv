@@ -55,8 +55,8 @@ impl PlayerManager {
 
 async fn announce_presence() -> std::io::Result<()>{
     // The IP address and port to bind to for receiving UDP messages
-    let local_address = "0.0.0.0:8888";
-    let remote_address = "255.255.255.255:8888"; // Broadcast address
+    let local_address = "0.0.0.0:8080";
+    let remote_address = "255.255.255.255:8080"; // Broadcast address
 
     // Create a UDP socket for receiving messages
     let socket = UdpSocket::bind(local_address)?;
