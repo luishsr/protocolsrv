@@ -87,12 +87,11 @@ async fn listen_to_players() {
     let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
-    let (mut socket, _) = listener.accept().expect("Failed to accept connection");
-
-    // Manage peers
-    let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: socket.peer_addr().unwrap().ip().to_string() };
-
     loop {
+        let (mut socket, _) = listener.accept().expect("Failed to accept connection");
+
+        // Manage peers
+        let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: socket.peer_addr().unwrap().ip().to_string() };
 
         let origin = socket.peer_addr().unwrap().ip().to_string();
         let mut buffer = [0; 4];
@@ -102,12 +101,16 @@ async fn listen_to_players() {
         match &buffer {
             b"PLAY" => {
 
-                // Start the game
-                println!("Game started!");
-                player_manager.start_game();
+                if origin.clone() != get_my_local_ip(){
+                    // Start the game
+                    println!("Game started!");
+                    player_manager.start_game();
 
-                // Ask the peer player to play
-                send_message_to_player(String::from("TURN"), origin.clone());
+                    // Ask the peer player to play
+                    send_message_to_player(String::from("TURN"), origin.clone());
+
+                }
+
             },
             b"TURN" => {
                 println!("Player {} is playng >>>", &origin);
