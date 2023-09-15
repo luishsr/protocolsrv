@@ -127,19 +127,23 @@ fn listen_to_players() {
                             player_manager.register_player(&get_my_local_ip());
 
                             // Start the game
+                            println!("Game started!");
                             player_manager.start_game();
 
                             // Ask the peer player to play
                             send_message_to_player(String::from("TURN"), origin.clone());
                         },
                         b"TURN" => {
+                            println!("Player {} is playng >>>", &origin);
                             // Guess a number and play
                             let win = player_manager.play_turn(guess_number(), origin.clone());
 
                             // Check if the player guessed the number
                             if win == player_manager.magic_number {
+                                println!("Wow!! PERFECT MATCH!! **** Player {} WIN!", origin.clone());
                                 send_message_to_player(String::from("WINN"), origin.clone());
                             } else {
+                                println!("Better luck next time, player {}!", origin.clone());
                                 send_message_to_player(String::from("TURN"), player_manager.get_next_player());
                             }
                         },
@@ -165,6 +169,7 @@ fn send_message_to_player(message: String, player_address: String){
     // Send the message
     stream.write_all(message.as_bytes()).unwrap();
 
+    sleep(time::Duration::from_secs(2));
     stream.shutdown(Shutdown::Read).expect("TODO: panic message");
 }
 
