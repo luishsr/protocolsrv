@@ -114,46 +114,45 @@ fn listen_to_players() {
 
         let (mut socket, _) = listener.accept().expect("Failed to accept connection");
 
-        tokio::spawn(async move {
-            let origin = socket.peer_addr().unwrap().ip().to_string();
-            let mut buffer = [0; 4];
-            socket.read_exact(&mut buffer).expect("Failed to read data");
+        let origin = socket.peer_addr().unwrap().ip().to_string();
+        let mut buffer = [0; 4];
 
-            match &buffer {
-                b"PLAY" => {
-                    // Register the peer player
-                    player_manager.register_player(&origin);
+        socket.read_exact(&mut buffer).expect("Failed to read data");
 
-                    // Register itself as the other player
-                    player_manager.register_player(&get_my_local_ip());
+        match &buffer {
+            b"PLAY" => {
+                // Register the peer player
+                player_manager.register_player(&origin);
 
-                    // Start the game
-                    println!("Game started!");
-                    player_manager.start_game();
+                // Register itself as the other player
+                player_manager.register_player(&get_my_local_ip());
 
-                    // Ask the peer player to play
-                    send_message_to_player(String::from("TURN"), origin.clone());
-                },
-                b"TURN" => {
-                    println!("Player {} is playng >>>", &origin);
-                    // Guess a number and play
-                    let win = player_manager.play_turn(guess_number(), origin.clone());
+                // Start the game
+                println!("Game started!");
+                player_manager.start_game();
 
-                    // Check if the player guessed the number
-                    if win == player_manager.magic_number {
-                        println!("Wow!! PERFECT MATCH!! **** Player {} WIN!", origin.clone());
-                        send_message_to_player(String::from("WINN"), origin.clone());
-                    } else {
-                        println!("Better luck next time, player {}!", origin.clone());
-                        send_message_to_player(String::from("TURN"), player_manager.get_next_player());
-                    }
-                },
-                b"WINN" => {
-                    println!(">>>>> WINNER !!! <<<<<<");
+                // Ask the peer player to play
+                send_message_to_player(String::from("TURN"), origin.clone());
+            },
+            b"TURN" => {
+                println!("Player {} is playng >>>", &origin);
+                // Guess a number and play
+                let win = player_manager.play_turn(guess_number(), origin.clone());
+
+                // Check if the player guessed the number
+                if win == player_manager.magic_number {
+                    println!("Wow!! PERFECT MATCH!! **** Player {} WIN!", origin.clone());
+                    send_message_to_player(String::from("WINN"), origin.clone());
+                } else {
+                    println!("Better luck next time, player {}!", origin.clone());
+                    send_message_to_player(String::from("TURN"), player_manager.get_next_player());
                 }
-                _ => {}
+            },
+            b"WINN" => {
+                println!(">>>>> WINNER !!! <<<<<<");
             }
-        });
+            _ => {}
+        }
     }
 }
 
