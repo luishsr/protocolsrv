@@ -211,6 +211,8 @@ fn main() -> std::io::Result<()> {
 
     println!("Server listening on port 8080...");
 
+    announce_presence();
+
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
