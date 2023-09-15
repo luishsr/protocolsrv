@@ -2,10 +2,12 @@ use std::collections::HashMap;
 use std::net::{UdpSocket, TcpStream, TcpListener};
 use tokio;
 use rand::Rng;
-use std::io::Write;
 use std::thread::sleep;
 use std::time;
 use local_ip_address::local_ip;
+use std::io::{Read, Write};
+use std::thread;
+
 
 fn get_my_local_ip() -> String{
     local_ip().unwrap().to_string()
@@ -168,8 +170,61 @@ fn send_message_to_player(message: String, player_address: String, change_port: 
     stream.write_all(message.as_bytes()).unwrap();
 }
 
-#[tokio::main]
-async fn main(){
+//#[tokio::main]
+//async fn main(){
     // Listen to peers to play with
-    listen_to_players();
+    //listen_to_players();
+//}
+
+
+fn handle_client(mut stream: TcpStream) {
+    let mut buffer = [0; 1024]; // Create a buffer to read messages.
+
+    loop {
+        match stream.read(&mut buffer) {
+            Ok(n) => {
+                if n == 0 {
+                    // Connection closed by the client.
+                    break;
+                }
+
+                // Process the received data here (e.g., convert to string).
+                let received_message = String::from_utf8_lossy(&buffer[..n]);
+                println!("Received: {}", received_message);
+
+                // Echo the received message back to the client.
+                if let Err(e) = stream.write_all(&buffer[..n]) {
+                    eprintln!("Error writing to client: {}", e);
+                    break;
+                }
+            }
+            Err(e) => {
+                eprintln!("Error reading from client: {}", e);
+                break;
+            }
+        }
+    }
 }
+
+fn main() -> std::io::Result<()> {
+    let listener = TcpListener::bind("127.0.0.1:8080")?; // Bind to an IP and port.
+
+    println!("Server listening on port 8080...");
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                // Spawn a new thread to handle each client connection.
+                thread::spawn(|| {
+                    handle_client(stream);
+                });
+            }
+            Err(e) => {
+                eprintln!("Error accepting connection: {}", e);
+            }
+        }
+    }
+
+    Ok(())
+}
+
