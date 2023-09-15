@@ -113,7 +113,7 @@ fn listen_to_players() {
 
     println!("Server listening on ");
 
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap(); // Bind to an IP and port.
+    let listener = TcpListener::bind("0.0.0.0:7878").unwrap(); // Bind to an IP and port.
     println!("Server listening on port 8080...");
 
     // Discover peers
