@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::net::{UdpSocket, TcpStream, TcpListener};
+use std::net::{UdpSocket, TcpStream};
 use tokio;
 use rand::Rng;
 use std::thread::sleep;
@@ -27,7 +27,7 @@ fn guess_number() -> i32 {
 }
 
 impl PlayerManager {
-    fn register_player(&mut self, address: String) {
+    fn register_player(&mut self, address: &String) {
         self.players.insert(address.clone(), Player{ address: address.clone(), played: false});
     }
 
@@ -60,7 +60,7 @@ impl PlayerManager {
     }
 }
 
-fn announce_presence(){
+fn announce_presence() -> TcpStream{
     // The IP address and port to bind to for receiving UDP messages
     let local_address = "0.0.0.0:8888";
     let remote_address = "255.255.255.255:8888"; // Broadcast address
@@ -77,6 +77,9 @@ fn announce_presence(){
      // Buffer to store received data
     let mut buffer = [0; 1024];
 
+    // TCP Stream to return
+    let send_stream: TcpStream;
+
     // Receive responses from other devices
     loop {
         // Send the discovery message
@@ -91,7 +94,7 @@ fn announce_presence(){
         // When someone replies
         if source_address.to_string() != get_my_local_ip() + ":8888" &&  received_message == "DISCOVERY"{
             // Invite to play
-            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
+            send_stream = send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
 
             // Stop the loop
             break
@@ -99,7 +102,7 @@ fn announce_presence(){
 
         sleep(time::Duration::from_secs(2));
     }
-    //println!("Sent UDP discovery message: {:?}", discovery_message);
+    send_stream
 }
 
 fn listen_to_players() {
@@ -108,68 +111,56 @@ fn listen_to_players() {
     // Manage peers
     let mut player_manager = PlayerManager{players: HashMap::new(), magic_number: 0 };
 
-    let listener = TcpListener::bind(String::from("0.0.0.0:7878")).unwrap(); // Bind to a specific IP address and port
-
     println!("Server listening on ");
 
-    // Discover peers
-    announce_presence();
+     // Discover peers
+    let mut stream = announce_presence();
 
-    // Listen for incoming connections and spawn a new thread to handle each one
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => {
-                loop {
-                    match stream.read(&mut buffer) {
-                        Ok(n)=> {
-                            if n == 0{
-                                break
-                            }
+        loop {
+             match stream.read(&mut buffer) {
+                  Ok(n)=> {
+                    if n == 0{
+                       break
+                    }
 
-                            // Convert the received data to a string
-                            let received_message = String::from_utf8_lossy(&buffer);
-                            println!("Received message: {}", received_message);
+                    // Convert the received data to a string
+                    let received_message = String::from_utf8_lossy(&buffer);
+                    let origin = stream.peer_addr().unwrap().to_string();
+                    println!("Received message: {}", received_message);
 
-                            // Process received messages
-                            if received_message == "PLAY" {
-                                // Register the peer player
-                                player_manager.register_player(stream.peer_addr().expect("REASON").to_string());
+                    // Process received messages
+                    if received_message == "PLAY" {
+                        // Register the peer player
+                        player_manager.register_player(&origin);
 
-                                // Register itself as the other player
-                                player_manager.register_player(get_my_local_ip());
+                        // Register itself as the other player
+                        player_manager.register_player(&get_my_local_ip());
 
-                                // Start the game
-                                player_manager.start_game();
+                        // Start the game
+                        player_manager.start_game();
 
-                                // Ask the peer player to play
-                                send_message_to_player(String::from("YOUR_TURN"), stream.peer_addr().expect("REASON").to_string(), false);
-                            } else if received_message == "YOUR_TURN" {
-                                // Guess a number and play
-                                let win = player_manager.play_turn(guess_number(), stream.peer_addr().expect("REASON").to_string());
+                        // Ask the peer player to play
+                        send_message_to_player(String::from("YOUR_TURN"), origin.clone(), false);
+                    } else if received_message == "YOUR_TURN" {
+                        // Guess a number and play
+                        let win = player_manager.play_turn(guess_number(), origin.clone());
 
-                                // Check if the player guessed the number
-                                if win == player_manager.magic_number{
-                                    send_message_to_player(String::from("YOU_WIN"), stream.peer_addr().expect("REASON").to_string(), false)
-                                } else {
-                                    send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
-                                }
-                            }
-
-                        }
-                        Err(e) => {
-                            eprintln!("Error accepting connection: {}", e);
+                        // Check if the player guessed the number
+                        if win == player_manager.magic_number{
+                            send_message_to_player(String::from("YOU_WIN"), origin.clone(), false);
+                        } else {
+                            send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
                         }
                     }
                 }
-            }
-            Err(e) => {
-                eprintln!("Error accepting connection: {}", e);
+                Err(e) => {
+                    eprintln!("Error accepting connection: {}", e);
+                }
             }
         }
-    }
 }
 
-fn send_message_to_player(message: String, player_address: String, change_port: bool){
+fn send_message_to_player(message: String, player_address: String, change_port: bool) -> TcpStream{
     let mut stream;
 
     if change_port{
@@ -181,6 +172,7 @@ fn send_message_to_player(message: String, player_address: String, change_port: 
 
     // Send the message
     stream.write_all(message.as_bytes()).unwrap();
+    stream
 }
 
 #[tokio::main]
