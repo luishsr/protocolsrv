@@ -91,7 +91,7 @@ fn announce_presence(){
         // When someone replies
         if source_address.to_string() != get_my_local_ip() + ":8888" &&  received_message == "DISCOVERY"{
             // Invite to play
-            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true).await;
+            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true);
 
             // Stop the loop
             break
@@ -134,16 +134,16 @@ async fn listen_to_players() {
                     player_manager.start_game();
 
                     // Ask the peer player to play
-                    send_message_to_player(String::from("YOUR_TURN"), stream.peer_addr().expect("REASON").to_string(), false).await
+                    send_message_to_player(String::from("YOUR_TURN"), stream.peer_addr().expect("REASON").to_string(), false);
                 } else if received_message == "YOUR_TURN" {
                     // Guess a number and play
                     let win = player_manager.play_turn(guess_number(), stream.peer_addr().expect("REASON").to_string());
 
                     // Check if the player guessed the number
                     if win == player_manager.magic_number{
-                        send_message_to_player(String::from("YOU_WIN"), stream.peer_addr().expect("REASON").to_string(), false).await
+                        send_message_to_player(String::from("YOU_WIN"), stream.peer_addr().expect("REASON").to_string(), false)
                     } else {
-                        send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false).await;
+                        send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
                     }
                 }
             }
@@ -154,7 +154,7 @@ async fn listen_to_players() {
     }
 }
 
-async fn send_message_to_player(message: String, player_address: String, change_port: bool){
+fn send_message_to_player(message: String, player_address: String, change_port: bool){
     let mut stream;
 
     if change_port{
