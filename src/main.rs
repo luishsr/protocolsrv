@@ -36,7 +36,7 @@ impl PlayerManager {
     }
 
     fn get_next_player(&mut self) -> String {
-        let mut next_player= String::from("127.0.0.1:8080");// Initializes with itself
+        let mut next_player= String::from("127.0.0.1:7878");// Initializes with itself
         for (address, player) in &self.players {
            if !player.played {
                next_player = address.clone();
@@ -106,7 +106,7 @@ fn listen_to_players() {
     // Manage peers
     let mut player_manager = PlayerManager{players: HashMap::new(), magic_number: 0 };
 
-    let listener = TcpListener::bind(get_my_local_ip()+":8080").unwrap(); // Bind to a specific IP address and port
+    let listener = TcpListener::bind(String::from("127.0.0.1:7878")).unwrap(); // Bind to a specific IP address and port
 
     println!("Server listening on ");
 
@@ -159,13 +159,13 @@ fn send_message_to_player(message: String, player_address: String, change_port: 
 
     if change_port{
         // Connect to the specified IP address and port
-        stream = TcpStream::connect(player_address + ":8080").expect("REASON");
+        stream = TcpStream::connect(player_address + ":7878").expect("REASON");
     } else {
         stream = TcpStream::connect(player_address).expect("REASON");
     }
 
     // Send the message
-    let _ = stream.write_all(message.as_bytes());
+    let _ = stream.write_all(message.as_bytes()).unwrap();
 }
 
 #[tokio::main]
