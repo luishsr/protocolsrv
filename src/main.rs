@@ -5,9 +5,7 @@ use rand::Rng;
 use std::thread::sleep;
 use std::time;
 use local_ip_address::local_ip;
-use std::io::{Read, Write};
-use std::thread;
-
+use std::io::{Write};
 
 fn get_my_local_ip() -> String{
     local_ip().unwrap().to_string()
