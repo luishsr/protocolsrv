@@ -3,6 +3,11 @@ use std::net::{UdpSocket, TcpStream, TcpListener};
 use tokio;
 use rand::Rng;
 use std::io::Write;
+use local_ip_address::local_ip;
+
+fn get_my_local_ip() -> String{
+    local_ip().unwrap().to_string()
+}
 
 pub struct Player {
     address: String,
@@ -53,26 +58,44 @@ impl PlayerManager {
     }
 }
 
-async fn announce_presence() -> std::io::Result<()>{
+async fn announce_presence(){
     // The IP address and port to bind to for receiving UDP messages
-    let local_address = "0.0.0.0:8080";
-    let remote_address = "255.255.255.255:8080"; // Broadcast address
+    let local_address = "0.0.0.0:8888";
+    let remote_address = "255.255.255.255:8888"; // Broadcast address
 
     // Create a UDP socket for receiving messages
-    let socket = UdpSocket::bind(local_address)?;
+    let socket = UdpSocket::bind(local_address).expect("REASON");
 
     // Set the socket to allow broadcasting
-    socket.set_broadcast(true)?;
+    socket.set_broadcast(true).expect("REASON");
 
     // Message to send for discovery
-    let discovery_message = "PLAY";
+    let discovery_message = "DISCOVERY";
 
-    // Send the discovery message
-    socket.send_to(discovery_message.as_bytes(), remote_address)?;
+     // Buffer to store received data
+    let mut buffer = [0; 1024];
 
-    println!("Sent UDP discovery message: {:?}", discovery_message);
+    // Receive responses from other devices
+    loop {
+        // Send the discovery message
+        socket.send_to(discovery_message.as_bytes(), remote_address).expect("REASON");
 
-    Ok(())
+        let (bytes_received, source_address) = socket.recv_from(&mut buffer).expect("REASON");
+
+        let received_message = std::str::from_utf8(&buffer[0..bytes_received]).unwrap();
+        println!("Received from {}: {}", source_address, received_message);
+        println!("My local IP is {}", get_my_local_ip());
+
+        // When someone replies
+        if source_address.to_string() != get_my_local_ip() + ":8888" &&  received_message == "DISCOVERY"{
+            // Invite to play
+            send_message_to_player(String::from("PLAY"), source_address.ip().to_string(), true).await;
+
+            // Stop the loop
+            break
+        }
+    }
+    //println!("Sent UDP discovery message: {:?}", discovery_message);
 }
 
 async fn listen_to_players() {
@@ -98,22 +121,22 @@ async fn listen_to_players() {
                     player_manager.register_player(stream.peer_addr().expect("REASON").to_string());
 
                     // Register itself as the other player
-                    player_manager.register_player(String::from("127.0.0.1:8080"));
+                    player_manager.register_player(get_my_local_ip());
 
                     // Start the game
                     player_manager.start_game();
 
                     // Ask the peer player to play
-                    send_message_to_player(String::from("YOUR_TURN"), stream.peer_addr().expect("REASON").to_string()).await
+                    send_message_to_player(String::from("YOUR_TURN"), stream.peer_addr().expect("REASON").to_string(), false).await
                 } else if received_message == "YOUR_TURN" {
                     // Guess a number and play
                     let win = player_manager.play_turn(guess_number(), stream.peer_addr().expect("REASON").to_string());
 
                     // Check if the player guessed the number
                     if win == player_manager.magic_number{
-                        send_message_to_player(String::from("YOU_WIN"), stream.peer_addr().expect("REASON").to_string()).await
+                        send_message_to_player(String::from("YOU_WIN"), stream.peer_addr().expect("REASON").to_string(), false).await
                     } else {
-                        send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player()).await;
+                        send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false).await;
                     }
                 }
             }
@@ -124,13 +147,18 @@ async fn listen_to_players() {
     }
 }
 
-async fn send_message_to_player(message: String, player_address: String){
-    // Connect to the specified IP address and port
-    let mut stream = TcpStream::connect(player_address).expect("REASON");
+async fn send_message_to_player(message: String, player_address: String, change_port: bool){
+    let mut stream;
+
+    if change_port{
+        // Connect to the specified IP address and port
+        stream = TcpStream::connect(player_address + ":8080").expect("REASON");
+    } else {
+        stream = TcpStream::connect(player_address).expect("REASON");
+    }
 
     // Send the message
     let _ = stream.write_all(message.as_bytes());
-
 }
 
 #[tokio::main]
@@ -138,6 +166,6 @@ async fn main(){
     // Announce its presence to the network
     announce_presence().await;
 
-    // Listen to peers
+    // Listen to peers to play with
     listen_to_players().await;
 }
