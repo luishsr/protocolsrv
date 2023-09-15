@@ -177,9 +177,9 @@ fn send_message_to_player(message: String, player_address: String, change_port: 
 
     if change_port{
         // Connect to the specified IP address and port
-        stream = TcpStream::connect(format!("{}:{}", player_address, String::from("7878"))).expect("REASON");
+        stream = TcpStream::connect(format!("{}:{}", player_address, String::from("7878"))).unwrap();
     } else {
-        stream = TcpStream::connect(player_address).expect("REASON");
+        stream = TcpStream::connect(player_address).unwrap();
     }
 
     // Send the message
