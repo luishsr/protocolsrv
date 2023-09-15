@@ -135,7 +135,7 @@ fn listen_to_players() {
                             println!("Received message: {}", received_message);
 
                             // Process received messages
-                            if received_message == "PLAY" {
+                            if received_message.to_string() == "PLAY" {
                                 // Register the peer player
                                 player_manager.register_player(&origin);
 
