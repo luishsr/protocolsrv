@@ -105,9 +105,6 @@ fn listen_to_players() {
     let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
-    // Discover peers
-    announce_presence();
-
     loop {
         // Manage peers
         let mut player_manager = PlayerManager { players: HashMap::new(), magic_number: 0 };
@@ -168,7 +165,12 @@ fn send_message_to_player(message: String, player_address: String){
 }
 
 fn main(){
-    //Listen to peers to play with
-    listen_to_players();
+    // Start listening for incoming connections
+    tokio::spawn(async move {
+        listen_to_players();
+    });
+
+    // Discover peers
+    announce_presence();
 }
 
