@@ -102,8 +102,6 @@ fn announce_presence() {
 }
 
 fn listen_to_players() {
-    let mut buffer = [0; 1024]; // Buffer to store incoming data
-
     // Manage peers
     let mut player_manager = PlayerManager { players: HashMap::new(), magic_number: 0 };
 
@@ -116,46 +114,39 @@ fn listen_to_players() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
+                let mut buffer = [0; 4];
+                let origin = stream.peer_addr().unwrap().ip().to_string();
                 loop {
-                    match stream.read(&mut buffer) {
-                        Ok(n) => {
-                            if n == 0 {
-                                break
+                    stream.read_exact(&mut buffer).expect("Error reading stream");
+                    match &buffer{
+                        b"PLAY" => {
+                            // Register the peer player
+                            player_manager.register_player(&origin);
+
+                            // Register itself as the other player
+                            player_manager.register_player(&get_my_local_ip());
+
+                            // Start the game
+                            player_manager.start_game();
+
+                            // Ask the peer player to play
+                            send_message_to_player(String::from("TURN"), origin.clone(), false);
+                        },
+                        b"TURN" => {
+                            // Guess a number and play
+                            let win = player_manager.play_turn(guess_number(), origin.clone());
+
+                            // Check if the player guessed the number
+                            if win == player_manager.magic_number {
+                                send_message_to_player(String::from("WINN"), origin.clone(), false);
+                            } else {
+                                send_message_to_player(String::from("TURN"), player_manager.get_next_player(), false);
                             }
-
-                            // Convert the received data to a string
-                            let received_message = String::from_utf8_lossy(&buffer);
-                            let origin = stream.peer_addr().unwrap().to_string();
-                            println!("Received message: {}", received_message);
-
-                            // Process received messages
-                            if received_message.to_string() == String::from("PLAY") {
-                                // Register the peer player
-                                player_manager.register_player(&origin);
-
-                                // Register itself as the other player
-                                player_manager.register_player(&get_my_local_ip());
-
-                                // Start the game
-                                player_manager.start_game();
-
-                                // Ask the peer player to play
-                                send_message_to_player(String::from("YOUR_TURN"), origin.clone(), false);
-                            } else if received_message == "YOUR_TURN" {
-                                // Guess a number and play
-                                let win = player_manager.play_turn(guess_number(), origin.clone());
-
-                                // Check if the player guessed the number
-                                if win == player_manager.magic_number {
-                                    send_message_to_player(String::from("YOU_WIN"), origin.clone(), false);
-                                } else {
-                                    send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
-                                }
-                            }
+                        },
+                        b"WINN" =>{
+                            println!(">>>>> WINNER !!! <<<<<<");
                         }
-                        Err(e) => {
-                            eprintln!("Error accepting connection: {}", e);
-                        }
+                        _ => {}
                     }
                 }
                 }
