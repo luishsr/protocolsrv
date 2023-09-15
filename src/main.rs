@@ -26,6 +26,10 @@ impl PlayerManager {
         self.magic_number = guess_number();
     }
 
+    fn get_magic_number(&mut self) -> i32{
+        self.magic_number
+    }
+
     fn play_turn(&mut self, guess: i32) -> i32 {
         println!(" Guessed # {}", guess.to_string());
         if guess > self.magic_number {
@@ -84,8 +88,6 @@ async fn listen_to_players() {
     println!("Server listening on port 7878...");
 
     loop {
-        // Manage peers
-        let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: String::from("0") };
 
         let (mut socket, _) = listener.accept().expect("Failed to accept connection");
 
@@ -94,10 +96,11 @@ async fn listen_to_players() {
 
         socket.read_exact(&mut buffer).expect("Failed to read data");
 
+        // Manage peers
+        let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: origin.clone() };
+
         match &buffer {
             b"PLAY" => {
-                // Register the peer player
-                player_manager.remote_player = origin.clone();
 
                 // Start the game
                 println!("Game started!");
@@ -112,7 +115,7 @@ async fn listen_to_players() {
                 let win = player_manager.play_turn(guess_number());
 
                 // Check if the player guessed the number
-                if win == player_manager.magic_number {
+                if win == player_manager.get_magic_number() {
                     println!("Wow!! PERFECT MATCH!! **** Player {} WIN!", origin.clone());
                     send_message_to_player(String::from("WINN"), origin.clone());
                 } else {
