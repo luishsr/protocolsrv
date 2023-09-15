@@ -159,13 +159,13 @@ fn send_message_to_player(message: String, player_address: String, change_port: 
 
     if change_port{
         // Connect to the specified IP address and port
-        stream = TcpStream::connect(player_address + ":7878").expect("REASON");
+        stream = TcpStream::connect(format!("{}:{}", player_address, String::from("7878"))).expect("REASON");
     } else {
         stream = TcpStream::connect(player_address).expect("REASON");
     }
 
     // Send the message
-    let _ = stream.write_all(message.as_bytes()).unwrap();
+    stream.write_all(message.as_bytes()).unwrap();
 }
 
 #[tokio::main]
