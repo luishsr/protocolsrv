@@ -18,7 +18,7 @@ pub struct PlayerManager {
 
 fn guess_number() -> i32 {
     let mut rng = rand::thread_rng();
-    rng.gen_range(1..=30)
+    rng.gen_range(1..=10)
 }
 
 impl PlayerManager {
