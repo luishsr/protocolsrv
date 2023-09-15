@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::net::{UdpSocket, TcpStream};
+use std::net::{UdpSocket, TcpStream, TcpListener};
 use tokio;
 use rand::Rng;
 use std::thread::sleep;
@@ -109,49 +109,61 @@ fn listen_to_players() {
     let mut buffer = [0; 1024]; // Buffer to store incoming data
 
     // Manage peers
-    let mut player_manager = PlayerManager{players: HashMap::new(), magic_number: 0 };
+    let mut player_manager = PlayerManager { players: HashMap::new(), magic_number: 0 };
 
     println!("Server listening on ");
 
-     // Discover peers
-    let mut stream = announce_presence();
+    let listener = TcpListener::bind("127.0.0.1:8080").unwrap(); // Bind to an IP and port.
+    println!("Server listening on port 8080...");
 
-        loop {
-             match stream.read(&mut buffer) {
-                  Ok(n)=> {
-                    if n == 0{
-                       break
-                    }
+    // Discover peers
+    announce_presence();
 
-                    // Convert the received data to a string
-                    let received_message = String::from_utf8_lossy(&buffer);
-                    let origin = stream.peer_addr().unwrap().to_string();
-                    println!("Received message: {}", received_message);
+    for mut stream in listener.incoming() {
+        match stream {
+            Ok(mut stream) => {
+                loop {
+                    match stream.read(&mut buffer) {
+                        Ok(n) => {
+                            if n == 0 {
+                                break
+                            }
 
-                    // Process received messages
-                    if received_message == "PLAY" {
-                        // Register the peer player
-                        player_manager.register_player(&origin);
+                            // Convert the received data to a string
+                            let received_message = String::from_utf8_lossy(&buffer);
+                            let origin = stream.peer_addr().unwrap().to_string();
+                            println!("Received message: {}", received_message);
 
-                        // Register itself as the other player
-                        player_manager.register_player(&get_my_local_ip());
+                            // Process received messages
+                            if received_message == "PLAY" {
+                                // Register the peer player
+                                player_manager.register_player(&origin);
 
-                        // Start the game
-                        player_manager.start_game();
+                                // Register itself as the other player
+                                player_manager.register_player(&get_my_local_ip());
 
-                        // Ask the peer player to play
-                        send_message_to_player(String::from("YOUR_TURN"), origin.clone(), false);
-                    } else if received_message == "YOUR_TURN" {
-                        // Guess a number and play
-                        let win = player_manager.play_turn(guess_number(), origin.clone());
+                                // Start the game
+                                player_manager.start_game();
 
-                        // Check if the player guessed the number
-                        if win == player_manager.magic_number{
-                            send_message_to_player(String::from("YOU_WIN"), origin.clone(), false);
-                        } else {
-                            send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
+                                // Ask the peer player to play
+                                send_message_to_player(String::from("YOUR_TURN"), origin.clone(), false);
+                            } else if received_message == "YOUR_TURN" {
+                                // Guess a number and play
+                                let win = player_manager.play_turn(guess_number(), origin.clone());
+
+                                // Check if the player guessed the number
+                                if win == player_manager.magic_number {
+                                    send_message_to_player(String::from("YOU_WIN"), origin.clone(), false);
+                                } else {
+                                    send_message_to_player(String::from("YOUR_TURN"), player_manager.get_next_player(), false);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Error accepting connection: {}", e);
                         }
                     }
+                }
                 }
                 Err(e) => {
                     eprintln!("Error accepting connection: {}", e);
