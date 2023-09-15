@@ -11,7 +11,9 @@ fn get_my_local_ip() -> String{
 }
 
 pub struct PlayerManager {
-    magic_number: i32
+    magic_number: i32,
+    local_player: String,
+    remote_player: String
 }
 
 fn guess_number() -> i32 {
@@ -62,7 +64,6 @@ fn announce_presence() {
 
         let received_message = std::str::from_utf8(&buffer[0..bytes_received]).unwrap();
         println!("Received from {}: {}", source_address, received_message);
-        //println!("My local IP is {}", get_my_local_ip());
 
         // When someone replies
         if source_address.to_string() != get_my_local_ip() + ":8888" && received_message == "DISCOVERY" {
@@ -82,13 +83,9 @@ async fn listen_to_players() {
     let listener = TcpListener::bind("0.0.0.0:7878").expect("Error when binding to listen on port 7878"); // Bind to an IP and port.
     println!("Server listening on port 7878...");
 
-    // Initialize players A, B
-    let mut player_a: String = String::from("");
-    let mut player_b: String = String::from("");
-
     loop {
         // Manage peers
-        let mut player_manager = PlayerManager { magic_number: 0 };
+        let mut player_manager = PlayerManager { magic_number: 0, local_player: String::from("127.0.0.1"), remote_player: String::from("0") };
 
         let (mut socket, _) = listener.accept().expect("Failed to accept connection");
 
@@ -100,12 +97,7 @@ async fn listen_to_players() {
         match &buffer {
             b"PLAY" => {
                 // Register the peer player
-                //player_manager.register_player(&origin);
-                player_a = origin.clone();
-
-                // Register itself as the other player
-                //player_manager.register_player(&get_my_local_ip());
-                player_b = get_my_local_ip();
+                player_manager.remote_player = origin.clone();
 
                 // Start the game
                 println!("Game started!");
@@ -126,10 +118,10 @@ async fn listen_to_players() {
                 } else {
                     println!("Better luck next time, player {}!", origin.clone());
 
-                    if origin.clone() == player_a {
-                        send_message_to_player(String::from("TURN"), player_b.clone());
+                    if origin.clone() == player_manager.local_player {
+                        send_message_to_player(String::from("TURN"), player_manager.remote_player);
                     } else {
-                        send_message_to_player(String::from("TURN"), player_a.clone());
+                        send_message_to_player(String::from("TURN"), player_manager.local_player);
                     }
                 }
             },
@@ -146,6 +138,8 @@ async fn listen_to_players() {
 
 fn send_message_to_player(message: String, player_address: String){
     let mut stream;
+
+    println!("Sending message to {}", player_address);
 
     stream = TcpStream::connect(format!("{}:{}", player_address, String::from("7878"))).unwrap();
 
