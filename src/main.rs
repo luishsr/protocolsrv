@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::net::{UdpSocket, TcpStream, TcpListener};
+use std::net::{UdpSocket, TcpStream, TcpListener, Shutdown};
 use rand::Rng;
 use std::thread::sleep;
 use std::time;
@@ -164,6 +164,8 @@ fn send_message_to_player(message: String, player_address: String){
 
     // Send the message
     stream.write_all(message.as_bytes()).unwrap();
+
+    stream.shutdown(Shutdown::Read).expect("TODO: panic message");
 }
 
 fn main(){
