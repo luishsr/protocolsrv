@@ -122,9 +122,9 @@ async fn listen_to_players() {
                     println!("Better luck next time, player {}!", origin.clone());
 
                     if origin.clone() == player_manager.local_player {
-                        send_message_to_player(String::from("TURN"), player_manager.remote_player);
+                        send_message_to_player(String::from("TURN"), player_manager.remote_player.clone());
                     } else {
-                        send_message_to_player(String::from("TURN"), player_manager.local_player);
+                        send_message_to_player(String::from("TURN"), player_manager.local_player.clone());
                     }
                 }
             },
